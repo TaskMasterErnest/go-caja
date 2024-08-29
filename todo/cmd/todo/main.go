@@ -11,6 +11,14 @@ import (
 const todoFileName = ".todo.json"
 
 func main() {
+	// add the usage information
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"%s tool. Developed by TaskMasterErnest\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Copyright 2024 (lol)\n")
+		fmt.Fprintln(flag.CommandLine.Output(), "Usage Information:")
+		flag.PrintDefaults()
+	}
 	// adding flags for true CLI implementation
 	task := flag.String("task", "", "task to be included in ToDo list")
 	list := flag.Bool("list", false, "list all tasks.")
@@ -26,11 +34,8 @@ func main() {
 
 	switch {
 	case *list:
-		for _, task := range *l {
-			if !task.Done {
-				fmt.Println(task.Task)
-			}
-		}
+		// use the API defined method
+		fmt.Println(l)
 	case *complete > 0:
 		if err := l.Complete(*complete); err != nil {
 			fmt.Fprintln(os.Stderr, err)

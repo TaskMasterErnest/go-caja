@@ -18,6 +18,22 @@ type item struct {
 
 type List []item
 
+// format the List output
+func (l *List) String() string {
+	formattedOutput := ""
+
+	for idx, task := range *l {
+		prefix := " "
+		if task.Done {
+			prefix = "X"
+		}
+		// adjust item number in formatted output
+		formattedOutput += fmt.Sprintf("%s\t%d: %s\n", prefix, idx+1, task.Task)
+	}
+
+	return formattedOutput
+}
+
 // create a new todo item and add it to list
 func (l *List) Add(task string) {
 	//
