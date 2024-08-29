@@ -8,7 +8,7 @@ import (
 	"github.com/go-caja/todo"
 )
 
-const todoFileName = ".todo.json"
+var todoFileName = ".todo.json"
 
 func main() {
 	// add the usage information
@@ -24,6 +24,11 @@ func main() {
 	list := flag.Bool("list", false, "list all tasks.")
 	complete := flag.Int("complete", 0, "item to the marked as complete")
 	flag.Parse()
+
+	// check if user defined the env var in a custom file name
+	if os.Getenv("TODO_FILENAME") != "" {
+		todoFileName = os.Getenv("TODO_FILENAME")
+	}
 
 	l := &todo.List{}
 
