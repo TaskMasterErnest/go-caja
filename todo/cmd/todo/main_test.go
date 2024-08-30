@@ -2,10 +2,12 @@ package main_test
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"testing"
 )
 
@@ -56,7 +58,26 @@ func TestTodoCLI(t *testing.T) {
 
 	// create the first test to ensure the tool can add a new task using the t.Run
 	t.Run("AddNewTask", func(t *testing.T) {
-		cmd := exec.Command(cmdPath, "-task", task)
+		cmd := exec.Command(cmdPath, "-add", task)
+
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	task2 := "test task number 2"
+	t.Run("AddNewTaskFromSTDIN", func(t *testing.T) {
+		cmd := exec.Command(cmdPath, "-add")
+		// connect to the stdin pipe
+		cmdStdIn, err := cmd.StdinPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// write the string to the pipe
+		io.WriteString(cmdStdIn, task2)
+		// close the pipe
+		cmdStdIn.Close()
 
 		if err := cmd.Run(); err != nil {
 			t.Fatal(err)
@@ -70,9 +91,30 @@ func TestTodoCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := fmt.Sprintf(" \t1: %s\n", task)
+		expected := fmt.Sprintf("\u2615  1: %s\n\u2615  2: %s\n\n", task, task2)
 
 		if expected != string(out) {
+			t.Errorf("expected %q, got %q instead\n", expected, string(out))
+		}
+	})
+
+	// test the delete
+	var taskNumber int = 1
+	t.Run("DeleteTask", func(t *testing.T) {
+		cmdDel := exec.Command(cmdPath, "-delete", strconv.Itoa(taskNumber))
+		if err := cmdDel.Run(); err != nil {
+			t.Error(err)
+		}
+
+		cmdList := exec.Command(cmdPath, "-list")
+		out, err := cmdList.CombinedOutput()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := fmt.Sprintf("\u2615  1: %s\n\n", task2)
+
+		if string(out) != expected {
 			t.Errorf("expected %q, got %q instead\n", expected, string(out))
 		}
 	})
