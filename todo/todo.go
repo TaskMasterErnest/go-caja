@@ -55,6 +55,22 @@ func (l *List) StringVerbose(verbose bool) string {
 	return formattedOutput
 }
 
+// formatting the output to have only undone tasks
+func (l *List) StringUndone(undone bool) string {
+	formattedOutput := ""
+
+	for idx, task := range *l {
+		prefix := "\u2615  "
+		if undone {
+			if !task.Done {
+				formattedOutput += fmt.Sprintf("%s%d: %s\n", prefix, idx+1, task.Task)
+			}
+		}
+	}
+
+	return formattedOutput
+}
+
 // create a new todo item and add it to list
 func (l *List) Add(task string) {
 	//

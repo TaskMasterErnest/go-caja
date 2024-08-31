@@ -27,7 +27,8 @@ func main() {
 	list := flag.Bool("list", false, "list all tasks.")
 	complete := flag.Int("complete", 0, "item to the marked as complete.")
 	delete := flag.Int("delete", 0, "item to be deleted.")
-	verbose := flag.Bool("verbose", false, "verbose output.")
+	verbose := flag.Bool("lv", false, "verbose output.")
+	undone := flag.Bool("undone", false, "display uncompleted tasks.")
 	flag.Parse()
 
 	// check if user defined the env var in a custom file name
@@ -47,6 +48,8 @@ func main() {
 		fmt.Println(l)
 	case *verbose:
 		fmt.Println(l.StringVerbose(true))
+	case *undone:
+		fmt.Println(l.StringUndone(true))
 	case *complete > 0:
 		if err := l.Complete(*complete); err != nil {
 			fmt.Fprintln(os.Stderr, err)
