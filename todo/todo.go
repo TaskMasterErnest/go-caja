@@ -27,9 +27,29 @@ func (l *List) String() string {
 		if task.Done {
 			prefix = "\u2705  " // alt codes
 		}
-		// adjust item number in formatted output
 		formattedOutput += fmt.Sprintf("%s%d: %s\n", prefix, idx+1, task.Task)
-		// verboseFormattedOutput += fmt.Sprintf("%s%d: %s\t\t[created: %s | completed: %s]\n", prefix, idx+1, task.Task, task.CreatedAt.Format(time.ANSIC), task.CompletedAt.Format(time.ANSIC))
+	}
+
+	return formattedOutput
+}
+
+// formatting the List output for verbose output
+func (l *List) StringVerbose(verbose bool) string {
+	formattedOutput := ""
+
+	for idx, task := range *l {
+		prefix := "\u2615  "
+		if task.Done {
+			prefix = "\u2705  " // alt codes
+		}
+
+		if verbose {
+			if task.Done {
+				formattedOutput += fmt.Sprintf("%s%d: %s\t\t[Created: %s | Completed: %s]\n", prefix, idx+1, task.Task, task.CreatedAt.Format(time.ANSIC), task.CompletedAt.Format(time.ANSIC))
+			} else {
+				formattedOutput += fmt.Sprintf("%s%d: %s\t\t[Created: %s]\n", prefix, idx+1, task.Task, task.CreatedAt.Format(time.ANSIC))
+			}
+		}
 	}
 
 	return formattedOutput
