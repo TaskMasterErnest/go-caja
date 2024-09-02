@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"runtime"
 
 	bluemonday "github.com/microcosm-cc/bluemonday"
 	blackfriday "github.com/russross/blackfriday/v2"
@@ -30,7 +32,7 @@ const (
 </html>`
 )
 
-func run(filename string, out io.Writer) error {
+func run(filename string, out io.Writer, skipPreview bool) error {
 	input, err := os.ReadFile(filename)
 	if err != nil {
 		return err
@@ -52,7 +54,15 @@ func run(filename string, out io.Writer) error {
 
 	fmt.Fprintln(out, outName)
 
-	return saveHTML(outName, htmlData)
+	if err := saveHTML(outName, htmlData); err != nil {
+		return err
+	}
+
+	if skipPreview {
+		return nil
+	}
+
+	return preview(outName)
 }
 
 func parseContent(input []byte) []byte {
@@ -75,9 +85,42 @@ func saveHTML(outFName string, data []byte) error {
 	return os.WriteFile(outFName, data, 0644)
 }
 
+// adding an auto-preview feature
+
+func preview(filename string) error {
+	cmdName := ""
+	cmdParams := []string{}
+
+	// define the executable based on the OS
+	switch runtime.GOOS {
+	case "linux":
+		cmdName = "xdg-open"
+	case "windows":
+		cmdName = "cmd.exe"
+		cmdParams = []string{"/C", "start"}
+	case "darwin":
+		cmdName = "open"
+	default:
+		return fmt.Errorf("OS not supported")
+	}
+
+	// append filename to parameter slice
+	cmdParams = append(cmdParams, filename)
+
+	// locate the executable in the path
+	cmdPath, err := exec.LookPath(cmdName)
+	if err != nil {
+		return err
+	}
+
+	// open the file using the default program
+	return exec.Command(cmdPath, cmdParams...).Run()
+}
+
 func main() {
 	// set flags
 	filename := flag.String("file", "", "Markdown file to preview.")
+	skipPreview := flag.Bool("s", false, "Skip auto-preview")
 	flag.Parse()
 
 	// check if the filename is passed
@@ -86,7 +129,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := run(*filename, os.Stdout); err != nil {
+	if err := run(*filename, os.Stdout, *skipPreview); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
