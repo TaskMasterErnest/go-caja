@@ -31,8 +31,22 @@ func main() {
 	// initialize flags
 	lines := flag.Bool("l", false, "Count lines")
 	bytes := flag.Bool("b", false, "Count bytes")
+	filename := flag.String("f", "", "File to read from")
 	flag.Parse()
 
-	// print output with the flags enabled
-	fmt.Println(count(os.Stdin, *lines, *bytes))
+	var reader io.Reader
+
+	if *filename != "" {
+		file, err := os.Open(*filename)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		defer file.Close()
+		reader = file
+	} else {
+		reader = os.Stdin
+	}
+
+	fmt.Println(count(reader, *lines, *bytes))
 }
