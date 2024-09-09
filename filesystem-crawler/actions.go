@@ -26,3 +26,8 @@ func listFile(path string, out io.Writer) error {
 	_, err := fmt.Fprintln(out, path)
 	return err
 }
+
+func deleteFile(path string) error {
+	// remove the file path
+	return os.Remove(path)
+}
