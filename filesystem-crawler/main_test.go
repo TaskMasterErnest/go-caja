@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -39,5 +42,78 @@ func TestRun(t *testing.T) {
 			}
 		})
 	}
+}
 
+func createTempDir(t *testing.T, files map[string]int) (dirname string, cleanup func()) {
+	t.Helper()
+
+	temp, err := os.MkdirTemp("", "walktest")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// iterate over the files map and create dummy files of a specified number
+	for idx, num := range files {
+		for j := 1; j <= num; j++ {
+			filename := fmt.Sprintf("file%d%s", j, idx)
+			path := filepath.Join(temp, filename)
+			if err := os.WriteFile(path, []byte("dummy"), 0644); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	return temp, func() { os.RemoveAll(temp) }
+}
+
+func TestRunDelExtension(t *testing.T) {
+	testCases := []struct {
+		name        string
+		cfg         config
+		extNoDelete string
+		nDelete     int
+		nNoDelete   int
+		expected    string
+	}{
+		{name: "DeleteExtensionNoMatch", cfg: config{ext: ".log", del: true}, extNoDelete: ".gz", nDelete: 0, nNoDelete: 10,
+			expected: ""},
+		{name: "DeleteExtensionMatch", cfg: config{ext: ".log", del: true}, extNoDelete: "", nDelete: 10, nNoDelete: 0,
+			expected: ""},
+		{name: "DeleteExtensionMixed", cfg: config{ext: ".log", del: true}, extNoDelete: ".gz", nDelete: 5, nNoDelete: 5,
+			expected: ""},
+	}
+
+	// execute the delete test cases
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			var buffer bytes.Buffer
+
+			tempDir, cleanup := createTempDir(t, map[string]int{
+				testCase.cfg.ext:     testCase.nDelete,
+				testCase.extNoDelete: testCase.nNoDelete,
+			})
+
+			defer cleanup()
+
+			if err := run(tempDir, &buffer, testCase.cfg); err != nil {
+				t.Fatal(err)
+			}
+
+			res := buffer.String()
+
+			if testCase.expected != res {
+				t.Errorf("expected %q, got %q instead\n", testCase.expected, res)
+			}
+
+			// read the files left after the delete operation
+			filesLeft, err := os.ReadDir(tempDir)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if len(filesLeft) != testCase.nNoDelete {
+				t.Errorf("expected %d files left, got %d instead\n", testCase.nNoDelete, len(filesLeft))
+			}
+		})
+	}
 }
