@@ -86,7 +86,13 @@ func TestRunDelExtension(t *testing.T) {
 	// execute the delete test cases
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			var buffer bytes.Buffer
+			var (
+				buffer    bytes.Buffer
+				logBuffer bytes.Buffer
+			)
+
+			//instantiate the delLogger
+			testCase.cfg.writeLog = &logBuffer
 
 			tempDir, cleanup := createTempDir(t, map[string]int{
 				testCase.cfg.ext:     testCase.nDelete,
@@ -114,6 +120,13 @@ func TestRunDelExtension(t *testing.T) {
 			if len(filesLeft) != testCase.nNoDelete {
 				t.Errorf("expected %d files left, got %d instead\n", testCase.nNoDelete, len(filesLeft))
 			}
+
+			expectedLogLines := testCase.nDelete + 1
+			lines := bytes.Split(logBuffer.Bytes(), []byte("\n"))
+			if len(lines) != expectedLogLines {
+				t.Errorf("expected %d log lines, got %d instead", expectedLogLines, len(lines))
+			}
+
 		})
 	}
 }

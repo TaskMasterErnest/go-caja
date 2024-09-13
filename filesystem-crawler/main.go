@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -17,9 +18,14 @@ type config struct {
 	list bool
 	// delete files
 	del bool
+	// destination log writer
+	writeLog io.Writer
 }
 
 func run(root string, out io.Writer, cfg config) error {
+	// initalizing delLogger
+	delLogger := log.New(cfg.writeLog, "DELETED FILE: ", log.LstdFlags)
+
 	return filepath.Walk(root,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -37,7 +43,7 @@ func run(root string, out io.Writer, cfg config) error {
 
 			// if an explicit delete is called
 			if cfg.del {
-				return deleteFile(path)
+				return deleteFile(path, delLogger)
 			}
 
 			// the default option here is list;
@@ -47,21 +53,38 @@ func run(root string, out io.Writer, cfg config) error {
 
 func main() {
 	// command-line flags
-	root := flag.String("root", ".", "root directory to start from.")
+	root := flag.String("root", ".", "Root directory to start from.")
+	logFile := flag.String("log", "", "Log deletes to file.")
 	// action options
-	list := flag.Bool("list", false, "list files only.")
-	delete := flag.Bool("del", false, "delete files")
+	list := flag.Bool("list", false, "List files only.")
+	delete := flag.Bool("del", false, "Delete files")
 	// filter options
-	ext := flag.String("ext", "", "file extension to filter out.")
-	size := flag.Int64("size", 0, "minimum file size.")
+	ext := flag.String("ext", "", "File extension to filter out.")
+	size := flag.Int64("size", 0, "Minimum file size.")
 	flag.Parse()
+
+	// passing in the logger
+	var (
+		file = os.Stdout
+		err  error
+	)
+
+	if *logFile != "" {
+		file, err = os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		defer file.Close()
+	}
 
 	// create instance of config struct that can be passed to run function
 	c := config{
-		ext:  *ext,
-		size: *size,
-		list: *list,
-		del:  *delete,
+		ext:      *ext,
+		size:     *size,
+		list:     *list,
+		del:      *delete,
+		writeLog: file,
 	}
 
 	// pass config struct to run function
