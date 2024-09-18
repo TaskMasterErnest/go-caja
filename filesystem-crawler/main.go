@@ -9,9 +9,20 @@ import (
 	"path/filepath"
 )
 
+type Extensions []string
+
+func (e *Extensions) Set(value string) error {
+	*e = append(*e, value)
+	return nil
+}
+
+func (e *Extensions) String() string {
+	return fmt.Sprint(*e)
+}
+
 type config struct {
 	// extension to filter out
-	ext string
+	ext []string
 	// min file size
 	size int64
 	// list files
@@ -20,6 +31,8 @@ type config struct {
 	del bool
 	// destination log writer
 	writeLog io.Writer
+	// archive directory
+	archive string
 }
 
 func run(root string, out io.Writer, cfg config) error {
@@ -41,6 +54,13 @@ func run(root string, out io.Writer, cfg config) error {
 				return listFile(path, out)
 			}
 
+			// adding the archive function
+			if cfg.archive != "" {
+				if err := archiveFile(cfg.archive, root, path); err != nil {
+					return err
+				}
+			}
+
 			// if an explicit delete is called
 			if cfg.del {
 				return deleteFile(path, delLogger)
@@ -58,8 +78,11 @@ func main() {
 	// action options
 	list := flag.Bool("list", false, "List files only.")
 	delete := flag.Bool("del", false, "Delete files")
+	archive := flag.String("archive", "", "Archive directory")
 	// filter options
-	ext := flag.String("ext", "", "File extension to filter out.")
+	var extensions Extensions
+	// ext := flag.String("ext", "", "File extension to filter out.")
+	flag.Var(&extensions, "ext", "File extension to filter out")
 	size := flag.Int64("size", 0, "Minimum file size.")
 	flag.Parse()
 
@@ -80,11 +103,12 @@ func main() {
 
 	// create instance of config struct that can be passed to run function
 	c := config{
-		ext:      *ext,
+		ext:      extensions,
 		size:     *size,
 		list:     *list,
 		del:      *delete,
 		writeLog: file,
+		archive:  *archive,
 	}
 
 	// pass config struct to run function
