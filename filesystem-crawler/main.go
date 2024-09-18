@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Extensions []string
@@ -33,6 +34,8 @@ type config struct {
 	writeLog io.Writer
 	// archive directory
 	archive string
+	// modification date
+	modDate time.Time
 }
 
 func run(root string, out io.Writer, cfg config) error {
@@ -45,7 +48,7 @@ func run(root string, out io.Writer, cfg config) error {
 				return nil
 			}
 
-			if filterOut(path, cfg.ext, cfg.size, info) {
+			if filterOut(path, cfg.ext, cfg.size, cfg.modDate, info) {
 				return nil
 			}
 
@@ -83,14 +86,13 @@ func main() {
 	var extensions Extensions
 	// ext := flag.String("ext", "", "File extension to filter out.")
 	flag.Var(&extensions, "ext", "File extension to filter out")
+	moddedTime := flag.String("moddedAfter", "", "Modification time of file.")
 	size := flag.Int64("size", 0, "Minimum file size.")
 	flag.Parse()
 
 	// passing in the logger
-	var (
-		file = os.Stdout
-		err  error
-	)
+	var file = os.Stdout
+	var err error
 
 	if *logFile != "" {
 		file, err = os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
@@ -101,6 +103,15 @@ func main() {
 		defer file.Close()
 	}
 
+	// check if a modification time filter was presented
+	var modTime time.Time
+	if *moddedTime != "" {
+		if modTime, err = time.Parse("2006-01-02", *moddedTime); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}
+
 	// create instance of config struct that can be passed to run function
 	c := config{
 		ext:      extensions,
@@ -109,6 +120,7 @@ func main() {
 		del:      *delete,
 		writeLog: file,
 		archive:  *archive,
+		modDate:  modTime,
 	}
 
 	// pass config struct to run function

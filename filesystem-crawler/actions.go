@@ -7,9 +7,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-func filterOut(path string, ext []string, minSize int64, info os.FileInfo) bool {
+func filterOut(path string, ext []string, minSize int64, statedTime time.Time, info os.FileInfo) bool {
 	// check if the file is pointing to a dir OR the size is less than the miz size for filtering
 	if info.IsDir() || info.Size() < minSize {
 		return true
@@ -17,7 +18,6 @@ func filterOut(path string, ext []string, minSize int64, info os.FileInfo) bool 
 
 	// compare extensions
 	fileExt := filepath.Ext(path)
-
 	// loop through multiple extension flags is any
 	if len(ext) > 0 {
 		for _, e := range ext {
@@ -25,6 +25,11 @@ func filterOut(path string, ext []string, minSize int64, info os.FileInfo) bool 
 				return false
 			}
 		}
+	}
+
+	fileModTime := info.ModTime()
+	if !statedTime.IsZero() && fileModTime.After(statedTime) {
+		return false
 	}
 
 	return true
