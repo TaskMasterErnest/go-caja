@@ -1,0 +1,7 @@
+goos: linux
+goarch: amd64
+pkg: github.com/go-caja/perf-colstats
+cpu: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
+BenchmarkRun-4   	      10	 826637405 ns/op
+PASS
+ok  	github.com/go-caja/perf-colstats	9.442s
