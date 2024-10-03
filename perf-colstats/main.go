@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"sync"
 )
 
 func main() {
@@ -42,24 +44,64 @@ func run(filenames []string, op string, column int, out io.Writer) error {
 
 	consolidate := make([]float64, 0)
 
-	for _, filename := range filenames {
-		file, err := os.Open(filename)
-		if err != nil {
-			return fmt.Errorf("cannot open file: %w", err)
-		}
+	// add channels to receive results or errors of operation
+	resCh := make(chan []float64)
+	errCh := make(chan error)
+	doneCh := make(chan struct{})
+	// files channel to receive files
+	filesCh := make(chan string)
 
-		data, err := csv2float(file, column)
-		if err != nil {
-			return err
-		}
+	// define waitgroups
+	wg := sync.WaitGroup{}
 
-		if err := file.Close(); err != nil {
-			return err
+	// loop through the files ans send them to the channel to be processed when a worker is available
+	go func() {
+		defer close(filesCh)
+		for _, filename := range filenames {
+			filesCh <- filename
 		}
+	}()
 
-		consolidate = append(consolidate, data...)
+	// loop through files and create goroutine to process each file concurrently
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for filename := range filesCh {
+				file, err := os.Open(filename)
+				if err != nil {
+					errCh <- fmt.Errorf("cannot open file: %w", err)
+					return
+				}
+				// parse the csv into a slice of float64 nums
+				data, err := csv2float(file, column)
+				if err != nil {
+					errCh <- err
+				}
+
+				if err := file.Close(); err != nil {
+					errCh <- err
+				}
+
+				resCh <- data
+			}
+		}()
 	}
 
-	_, err := fmt.Fprintln(out, opFunc(consolidate))
-	return err
+	go func() {
+		wg.Wait()
+		close(doneCh)
+	}()
+
+	for {
+		select {
+		case err := <-errCh:
+			return err
+		case data := <-resCh:
+			consolidate = append(consolidate, data...)
+		case <-doneCh:
+			_, err := fmt.Fprintln(out, opFunc(consolidate))
+			return err
+		}
+	}
 }
