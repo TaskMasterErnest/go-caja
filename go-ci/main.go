@@ -20,7 +20,7 @@ func run(project string, out io.Writer) error {
 	cmd.Dir = project
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("'go build' failed: %s", err)
+		return &stepErr{step: "go build", msg: "go build failed", cause: err}
 	}
 
 	_, err := fmt.Fprintln(out, "GO Build: SUCCESS")
