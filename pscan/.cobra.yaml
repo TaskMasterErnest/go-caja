@@ -1,0 +1,7 @@
+author: TaskMasterErnest
+license:
+  header: |
+    Copyrights apply to this source code.
+    Check LICENSE for details
+  text: |
+    {{ .copyright }}
