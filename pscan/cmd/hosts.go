@@ -4,8 +4,6 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -13,14 +11,11 @@ import (
 var hostsCmd = &cobra.Command{
 	Use:   "hosts",
 	Short: "Manage the hosts list",
-	Long: `Manages the hosts lists for psan
+	Long: `Manages the hosts lists for pscan
 	
 	Add hosts with the add command
 	Delete hosts with the delete command
 	List hosts with the list command.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("hosts called")
-	},
 }
 
 func init() {
